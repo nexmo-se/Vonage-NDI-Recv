@@ -9,12 +9,13 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Vonage_NDI_Receive</RootNamespace>
     <AssemblyName>Vonage NDI Receiver</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -83,8 +84,11 @@
     <Reference Include="NAudio, Version=1.10.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\NAudio.1.10.0\lib\net35\NAudio.dll</HintPath>
     </Reference>
-    <Reference Include="OpenTokNET, Version=2.20.0.0, Culture=neutral, PublicKeyToken=446993dbb1ae17c2, processorArchitecture=MSIL">
-      <HintPath>packages\OpenTok.Client.2.20.0\lib\net40-client\OpenTokNET.dll</HintPath>
+    <Reference Include="NDILibDotNet2">
+      <HintPath>..\..\..\..\Program Files\NDI\NDI 5 SDK\Examples\Bin\AnyCPU\Release\NDILibDotNet2.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenTokNET, Version=2.23.2.0, Culture=neutral, PublicKeyToken=446993dbb1ae17c2, processorArchitecture=MSIL">
+      <HintPath>packages\OpenTok.Client.2.23.2\lib\net40-client\OpenTokNET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -101,8 +105,11 @@
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <Reference Include="WPFVideoRenderer, Version=2.20.0.0, Culture=neutral, PublicKeyToken=446993dbb1ae17c2, processorArchitecture=MSIL">
-      <HintPath>packages\OpenTok.Client.2.20.0\lib\net40-client\WPFVideoRenderer.dll</HintPath>
+    <Reference Include="WinFormsVideoRenderer, Version=2.23.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\OpenTok.Client.2.23.2\lib\net40-client\WinFormsVideoRenderer.dll</HintPath>
+    </Reference>
+    <Reference Include="WPFVideoRenderer, Version=2.23.2.0, Culture=neutral, PublicKeyToken=446993dbb1ae17c2, processorArchitecture=MSIL">
+      <HintPath>packages\OpenTok.Client.2.23.2\lib\net40-client\WPFVideoRenderer.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -153,12 +160,6 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\NDILibDotNet2\NDILibDotNet2.csproj">
-      <Project>{7195bfa6-8095-4618-96f6-8577db13fb43}</Project>
-      <Name>NDILibDotNet2</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>xcopy "$(ProjectDir)\..\..\..\Bin\x64\*.dll"  "$(TargetDir)" /D /Y
@@ -166,12 +167,12 @@ xcopy "$(ProjectDir)\..\..\..\Bin\x86\*.dll"  "$(TargetDir)" /D /Y
 EXIT 0
 </PreBuildEvent>
   </PropertyGroup>
-  <Import Project="packages\OpenTok.Client.2.20.0\build\OpenTok.Client.targets" Condition="Exists('packages\OpenTok.Client.2.20.0\build\OpenTok.Client.targets')" />
+  <Import Project="packages\OpenTok.Client.2.23.2\build\OpenTok.Client.targets" Condition="Exists('packages\OpenTok.Client.2.23.2\build\OpenTok.Client.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('packages\OpenTok.Client.2.20.0\build\OpenTok.Client.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\OpenTok.Client.2.20.0\build\OpenTok.Client.targets'))" />
+    <Error Condition="!Exists('packages\OpenTok.Client.2.23.2\build\OpenTok.Client.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\OpenTok.Client.2.23.2\build\OpenTok.Client.targets'))" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

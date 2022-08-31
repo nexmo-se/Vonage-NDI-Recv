@@ -6,14 +6,16 @@ using System.Windows;
 using OpenTok;
 using System.Threading;
 using System.IO;
+using System.Text;
+using System.Linq;
 
 namespace Vonage_NDI_Receive
 {
     public class VonageNDI
     {
-        public const string API_KEY = "46789364";
-        public const string SESSION_ID = "1_MX40Njc4OTM2NH5-MTYyNTQ1NzI3MDQ4N35QNHlpekdOZE56UTF0NXp2VEwxNHFvTTd-fg";
-        public const string TOKEN = "T1==cGFydG5lcl9pZD00Njc4OTM2NCZzaWc9ZTJkM2U4ZDQyYWU4NzcxMzE5ZjIzMzA1YTc2MTZjYmQzZjk2ZGIzYTpzZXNzaW9uX2lkPTFfTVg0ME5qYzRPVE0yTkg1LU1UWXlOVFExTnpJM01EUTROMzVRTkhscGVrZE9aRTU2VVRGME5YcDJWRXd4TkhGdlRUZC1mZyZjcmVhdGVfdGltZT0xNjI1NDcwMDEyJm5vbmNlPTAuOTU5NDU1MzM2OTQyODU0NyZyb2xlPXB1Ymxpc2hlciZleHBpcmVfdGltZT0xNjI1NTU2NDEyJmluaXRpYWxfbGF5b3V0X2NsYXNzX2xpc3Q9";
+        public const string API_KEY = "";
+        public const string SESSION_ID = "";
+        public const string TOKEN = "";
         NDIVonageVideoCapturer Capturer;
         NDIVonageAudioCapturer NDIAudioDevice;
         Session Session;
@@ -34,22 +36,36 @@ namespace Vonage_NDI_Receive
                 // you can check this directly with a call to NDIlib.is_supported_CPU()
                 if (!NDIlib.is_supported_CPU())
                 {
-                    MessageBox.Show("CPU unsupported.");   
+                    Console.WriteLine("CPU unsupported.");
+                    Console.WriteLine("\nApplication Ended (press any key to contiunue)");
+                    Console.ReadKey();
+                    Environment.Exit(0);
                 }
                 else
                 {
                     // not sure why, but it's not going to run
-                    MessageBox.Show("Cannot run NDI.");
+                    Console.WriteLine("Cannot run NDI.");
+                    Console.WriteLine("\nApplication Ended (press any key to contiunue)");
+                    Console.ReadKey();
+                    Environment.Exit(0);
                 }
                 // we can't go on
                 
             }
+            src = Display_sources();
+            
+            //Nothing is found
+            if (src.p_ndi_name == IntPtr.Zero)
+            {
+                Console.WriteLine("\nApplication Ended (press any key to contiunue)");
+                Console.ReadKey();
+                Environment.Exit(0);
+            }
 
-            /* Find the first source on network */
-            src = FindFirstSource();
+            //Use the chosen source
             String name = UTF.Utf8ToString(src.p_ndi_name);
-            System.Console.WriteLine("Found source:" + name);
-            /* Connect to Vonage video session */
+            System.Console.WriteLine("Using source:" + name);
+            //Connect to Vonage video session
             ConnecToVideoSession();
         }
 
@@ -202,17 +218,27 @@ namespace Vonage_NDI_Receive
             catch (OpenTokException ex)
             {
                 Console.WriteLine("OpenTokException " + ex.ToString());
+                Console.WriteLine("\nApplication Ended (press any key to contiunue)");
+                Console.ReadKey();
+                Environment.Exit(0);
             }
         }
 
         private void Session_Disconnected(object sender, EventArgs e)
         {
             Console.WriteLine("Session disconnected");
+            Console.WriteLine("\nApplication Ended (press any key to contiunue)");
+            Console.ReadKey();
+            Environment.Exit(0);
         }
 
         private void Session_Error(object sender, Session.ErrorEventArgs e)
         {
-            MessageBox.Show("Session error:" + e.ErrorCode, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            Console.WriteLine("Session error:" + e.ErrorCode, "Error");
+            Thread.Sleep(1000);
+            Console.WriteLine("\nApplication Ended (press any key to contiunue)");
+            Console.ReadKey();
+            Environment.Exit(0);
         }
 
         private void Session_StreamReceived(object sender, Session.StreamEventArgs e)
@@ -221,12 +247,14 @@ namespace Vonage_NDI_Receive
         private void Session_StreamDropped(object sender, Session.StreamEventArgs e)
         {
         }
-            protected NDIlib.source_t FindFirstSource()
+        
+
+        protected NDIlib.source_t Display_sources()
         {
             IntPtr extraIpsPtr = IntPtr.Zero;
             IntPtr groupsNamePtr = IntPtr.Zero;
             bool showLocalSources = true;
-
+            
             NDIlib.find_create_t findDesc = new NDIlib.find_create_t()
             {
                 p_groups = groupsNamePtr,
@@ -236,26 +264,318 @@ namespace Vonage_NDI_Receive
             };
 
             _findInstancePtr = NDIlib.find_create_v2(ref findDesc);
-
+            
+            bool foundSource = true;
             int SourceSizeInBytes = Marshal.SizeOf(typeof(NDIlib.source_t));
-            bool foundSource = false;
+            uint NumSources = 0;
+            IntPtr SourcesPtr = IntPtr.Zero;
 
-            while (!foundSource)
+            while (foundSource) //find sources until nothing is found (will return false when no new source is found
             {
-                if (NDIlib.find_wait_for_sources(_findInstancePtr, 500))
+                Console.WriteLine("Searching...\n");
+                uint search_ms_timeout = 1000; //the duration each search takes in miliseconds
+                foundSource = NDIlib.find_wait_for_sources(_findInstancePtr, search_ms_timeout);
+                SourcesPtr = NDIlib.find_get_current_sources(_findInstancePtr, ref NumSources);
+            }
+            Console.WriteLine(NumSources + " NDI Source Found\n");
+
+
+            if (NumSources > 0)
+            {
+                for (int i = 0; i < NumSources; i++)
                 {
-                    uint NumSources = 0;
-                    IntPtr SourcesPtr = NDIlib.find_get_current_sources(_findInstancePtr, ref NumSources);
-                    if(NumSources > 0)
+                    IntPtr p = IntPtr.Add(SourcesPtr, (i * SourceSizeInBytes)); // first in the list 0
+                    NDIlib.source_t src = (NDIlib.source_t)Marshal.PtrToStructure(p, typeof(NDIlib.source_t));
+                    Console.WriteLine(i+1+": "+ UTF.Utf8ToString(src.p_ndi_name));
+                }
+                while (true)
+                {
+                    Console.WriteLine("\nEnter the NDI Source number, or press <esc> to quit: ");
+                    string console_input = XConsole.CancelableReadLine(out bool isCancelled);
+
+                    if (isCancelled)
                     {
-                        IntPtr p = IntPtr.Add(SourcesPtr, (0 * SourceSizeInBytes)); // first in the list 0
+                        Console.WriteLine("\nCancelled");
+                        return default;
+                    }
+
+                    int choice = 0; //default choice is zero
+
+                    if (Int32.TryParse(console_input, out int numValue))
+                    {
+                        choice = numValue; //assign numValue if input is integer, use default 0 if not
+                    }
+
+                    if (choice > 0 && choice <= NumSources)
+                    {
+                        Console.WriteLine("Chosen: " + choice);
+                        IntPtr p = IntPtr.Add(SourcesPtr, ((choice - 1) * SourceSizeInBytes)); // first in the list 0
                         NDIlib.source_t src = (NDIlib.source_t)Marshal.PtrToStructure(p, typeof(NDIlib.source_t));
                         return src;
                     }
+                    else
+                    {
+                        Console.WriteLine("\nChosen number is not in choices");
+                        continue;
+                    }
+                }
+                
+
+            }
+            else
+            {
+                Console.WriteLine("No Sources Found");
+                return default;
+            }
+        }
+    }
+
+    //Console command handler "https://stackoverflow.com/a/66495807"
+    public static class XConsole
+    {
+        public static string CancelableReadLine(out bool isCancelled)
+        {
+            var cancelKey = ConsoleKey.Escape;
+            var builder = new StringBuilder();
+            var cki = Console.ReadKey(true);
+            int index = 0;
+            (int left, int top) startPosition;
+
+            while (cki.Key != ConsoleKey.Enter && cki.Key != cancelKey)
+            {
+                if (cki.Key == ConsoleKey.LeftArrow)
+                {
+                    if (index < 1)
+                    {
+                        cki = Console.ReadKey(true);
+                        continue;
+                    }
+
+                    LeftArrow(ref index, cki);
+                }
+                else if (cki.Key == ConsoleKey.RightArrow)
+                {
+                    if (index >= builder.Length)
+                    {
+                        cki = Console.ReadKey(true);
+                        continue;
+                    }
+
+                    RightArrow(ref index, cki, builder);
+                }
+                else if (cki.Key == ConsoleKey.Backspace)
+                {
+                    if (index < 1)
+                    {
+                        cki = Console.ReadKey(true);
+                        continue;
+                    }
+
+                    BackSpace(ref index, cki, builder);
+                }
+                else if (cki.Key == ConsoleKey.Delete)
+                {
+                    if (index >= builder.Length)
+                    {
+                        cki = Console.ReadKey(true);
+                        continue;
+                    }
+
+                    Delete(ref index, cki, builder);
+                }
+                else if (cki.Key == ConsoleKey.Tab)
+                {
+                    cki = Console.ReadKey(true);
+                    continue;
+                }
+                else
+                {
+                    if (cki.KeyChar == '\0')
+                    {
+                        cki = Console.ReadKey(true);
+                        continue;
+                    }
+
+                    Default(ref index, cki, builder);
+                }
+
+                cki = Console.ReadKey(true);
+            }
+
+            if (cki.Key == cancelKey)
+            {
+                startPosition = GetStartPosition(index);
+                ErasePrint(builder, startPosition);
+
+                isCancelled = true;
+                return string.Empty;
+            }
+
+            isCancelled = false;
+
+            startPosition = GetStartPosition(index);
+            var endPosition = GetEndPosition(startPosition.left, builder.Length);
+            var left = 0;
+            var top = startPosition.top + endPosition.top + 1;
+
+            Console.SetCursorPosition(left, top);
+
+            var value = builder.ToString();
+            return value;
+        }
+
+        private static void LeftArrow(ref int index, ConsoleKeyInfo cki)
+        {
+            var previousIndex = index;
+            index--;
+
+            if (cki.Modifiers == ConsoleModifiers.Control)
+            {
+                index = 0;
+
+                var startPosition = GetStartPosition(previousIndex);
+                Console.SetCursorPosition(startPosition.left, startPosition.top);
+
+                return;
+            }
+
+            if (Console.CursorLeft > 0)
+                Console.CursorLeft--;
+            else
+            {
+                Console.CursorTop--;
+                Console.CursorLeft = Console.BufferWidth - 1;
+            }
+        }
+
+        private static void RightArrow(ref int index, ConsoleKeyInfo cki, StringBuilder builder)
+        {
+            var previousIndex = index;
+            index++;
+
+            if (cki.Modifiers == ConsoleModifiers.Control)
+            {
+                index = builder.Length;
+
+                var startPosition = GetStartPosition(previousIndex);
+                var endPosition = GetEndPosition(startPosition.left, builder.Length);
+                var top = startPosition.top + endPosition.top;
+                var left = endPosition.left;
+
+                Console.SetCursorPosition(left, top);
+
+                return;
+            }
+
+            if (Console.CursorLeft < Console.BufferWidth - 1)
+                Console.CursorLeft++;
+            else
+            {
+                Console.CursorTop++;
+                Console.CursorLeft = 0;
+            }
+        }
+
+        private static void BackSpace(ref int index, ConsoleKeyInfo cki, StringBuilder builder)
+        {
+            var previousIndex = index;
+            index--;
+
+            var startPosition = GetStartPosition(previousIndex);
+            ErasePrint(builder, startPosition);
+
+            builder.Remove(index, 1);
+            Console.Write(builder.ToString());
+
+            GoBackToCurrentPosition(index, startPosition);
+        }
+
+        private static void Delete(ref int index, ConsoleKeyInfo cki, StringBuilder builder)
+        {
+            var startPosition = GetStartPosition(index);
+            ErasePrint(builder, startPosition);
+
+            if (cki.Modifiers == ConsoleModifiers.Control)
+            {
+                builder.Remove(index, builder.Length - index);
+                Console.Write(builder.ToString());
+
+                GoBackToCurrentPosition(index, startPosition);
+                return;
+            }
+
+            builder.Remove(index, 1);
+            Console.Write(builder.ToString());
+
+            GoBackToCurrentPosition(index, startPosition);
+        }
+
+        private static void Default(ref int index, ConsoleKeyInfo cki, StringBuilder builder)
+        {
+            var previousIndex = index;
+            index++;
+
+            builder.Insert(previousIndex, cki.KeyChar);
+
+            var startPosition = GetStartPosition(previousIndex);
+            Console.SetCursorPosition(startPosition.left, startPosition.top);
+            Console.Write(builder.ToString());
+
+            GoBackToCurrentPosition(index, startPosition);
+        }
+
+        private static (int left, int top) GetStartPosition(int previousIndex)
+        {
+            int top;
+            int left;
+
+            if (previousIndex <= Console.CursorLeft)
+            {
+                top = Console.CursorTop;
+                left = Console.CursorLeft - previousIndex;
+            }
+            else
+            {
+                var decrementValue = previousIndex - Console.CursorLeft;
+                var rowsFromStart = decrementValue / Console.BufferWidth;
+                top = Console.CursorTop - rowsFromStart;
+                left = decrementValue - rowsFromStart * Console.BufferWidth;
+
+                if (left != 0)
+                {
+                    top--;
+                    left = Console.BufferWidth - left;
                 }
             }
-            NDIlib.source_t nullsrc = (NDIlib.source_t)Marshal.PtrToStructure(IntPtr.Zero, typeof(NDIlib.source_t));
-            return nullsrc;
+
+            return (left, top);
+        }
+
+        private static void GoBackToCurrentPosition(int index, (int left, int top) startPosition)
+        {
+            var rowsToGo = (index + startPosition.left) / Console.BufferWidth;
+            var rowIndex = index - rowsToGo * Console.BufferWidth;
+
+            var left = startPosition.left + rowIndex;
+            var top = startPosition.top + rowsToGo;
+
+            Console.SetCursorPosition(left, top);
+        }
+
+        private static (int left, int top) GetEndPosition(int startColumn, int builderLength)
+        {
+            var cursorTop = (builderLength + startColumn) / Console.BufferWidth;
+            var cursorLeft = startColumn + (builderLength - cursorTop * Console.BufferWidth);
+
+            return (cursorLeft, cursorTop);
+        }
+
+        private static void ErasePrint(StringBuilder builder, (int left, int top) startPosition)
+        {
+            Console.SetCursorPosition(startPosition.left, startPosition.top);
+            Console.Write(new string(Enumerable.Range(0, builder.Length).Select(o => ' ').ToArray()));
+
+            Console.SetCursorPosition(startPosition.left, startPosition.top);
         }
     }
 }
